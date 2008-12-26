@@ -84,3 +84,8 @@ use
 The commands 'dump' and 'restore' are also provided to allow creation of
 a local backup of the database.
 
+To install cloudlib:
+
+    gem sources -a http://gems.github.com        # you only have to do this once
+    sudo gem install jgm-cloudlib
+
