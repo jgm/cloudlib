@@ -1,17 +1,18 @@
 Gem::Specification.new do |s|
   s.name     = "cloudlib"
   s.version  = "0.1"
-  s.date     = "2008-12-12"
-  s.summary  = "Library of books and articles in Amazon S3 and SimpleDB"
+  s.date     = "2008-12-25"
+  s.summary  = "Tools for maintaining a library of books and articles in Amazon S3 and SimpleDB"
   s.email    = "jgm@berkeley.edu"
   s.homepage = "http://github.com/jgm/cloudlib"
-  s.description = "Cloudlib is a ruby library and command for maintaining a library of books and articles on the Amazon 'cloud': S3 and SimpleDB."
+  s.description = "Cloudlib is a ruby library and commands for maintaining a library of books and articles on the Amazon 'cloud': S3 and SimpleDB."
   s.has_rdoc = true
   s.authors  = ["John MacFarlane"]
   s.bindir   = "bin"
   s.executables = ["cloudlib", "cloudlib-web"]
   s.default_executable = "cloudlib"
-  s.files    = [ "README", 
+  s.files    = [ "README",
+        "LICENSE",
         "cloudlib.gemspec", 
         "lib/cloudlib.rb",
         "bin/cloudlib",
