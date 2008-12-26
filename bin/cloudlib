@@ -1,0 +1,231 @@
+#!/usr/bin/env ruby
+
+require 'yaml'
+require 'rubygems'
+require 'digest/sha1'
+require 'lib/cloudlib'          # cloudlib gem
+require 'optparse'
+require 'highline/import'       # highline gem
+
+PROGNAME = "cloudlib"
+CLOUDLIB_VERSION = "0.1"
+NUMITEMS = 10
+
+options = {}
+opts = OptionParser.new do |opts|
+  opts.program_name = "#{PROGNAME} (c) 2008 John MacFarlane"
+  opts.version = "version #{CLOUDLIB_VERSION}"
+  opts.banner = "cloudlib -- a library of books and articles in the AWS `cloud'\n" +
+    "Usage: #{PROGNAME}                - start interactive menu\n" +
+    "       #{PROGNAME} add FILE       - upload FILE to library, prompting for metadata\n" +
+    "       #{PROGNAME} new-library    - initialize new library\n" +
+    "       #{PROGNAME} delete-library - delete library and all its entries\n" +
+    "       #{PROGNAME} dump [PATH]    - create a local backup of library in PATH\n" +
+    "       #{PROGNAME} restore [PATH] - restore library from local backup in PATH\n" +
+    "Options:"
+end
+opts.on("-v", "--version", "Show version") do
+  puts opts.ver
+  exit 0
+end
+opts.on("-h", "--help", "Show usage message") do
+  puts opts.help
+  exit 0
+end
+
+begin
+  opts.parse!
+rescue OptionParser::ParseError => e
+  puts e.message
+  puts opts.help
+  exit 1
+end
+
+# check that required environment variables are set, and prompt if they aren't
+envvars = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "CLOUDLIB_LIBRARY_NAME"]
+envvars.each do |var|
+  unless ENV[var]
+    ENV[var] = ask("#{var}: ", String) { |q| q.echo = if var == "AWS_SECRET_ACCESS_KEY" then "*" else true end }
+  end
+end
+
+Cloudlib::Entry.connect(ENV['CLOUDLIB_LIBRARY_NAME'], ENV['AWS_ACCESS_KEY_ID'], ENV['AWS_SECRET_ACCESS_KEY'])
+
+class Cloudlib::Entry
+  # Prompts for metadata for the entry, using existing metadata as defaults.
+  def ask_attributes
+    default_type = if self.show_attribute('entry_type').empty?
+                      "article"
+                   else
+                      self.show_attribute('entry_type')
+                   end
+    entry_types = ['article','book','chapter','incollection','unpublished']
+    type = ask("Type (#{entry_types.join(', ')})? ", entry_types) {|q| q.default = default_type; q.case = :downcase; q.readline = true }
+    self.attributes['entry_type'] = [type]
+    self.fields.each { |field| self.ask_attribute(field.to_s) }
+    return self
+  end
+
+  # Prompts for metadata for a particular field.
+  def ask_attribute(attribute)
+    default = self.show_attribute(attribute)
+    ans = ask(attribute.capitalize +
+      if attribute == 'editors' || attribute == 'authors' then " (name [and name...]) " else " " end, String) { |q| q.readline = true; q.default = default }
+    set_attribute(attribute, ans)
+  end
+
+end
+
+def show_items(items, more=false)
+  items.each_index do |i|
+    say "<%= color('[#{i}]', BOLD) %> #{items[i].to_s}\n"
+  end
+  if more
+   say "<%= color('Enter', BOLD)%> for more...\n"
+  end
+end
+
+def menu(items)
+  token = query = ""
+  while true
+    commands = ["find KEYWORDS", "quit"]
+    if items.length > 0
+      then commands = ["bib NUM", "get NUM", "del NUM", "mod NUM"] + commands
+    end
+    choices = commands.join(' | ')
+    ans = ask("#{choices} ? ", String) { |q| q.readline = true; q.case = :downcase }
+    if ans == ""
+       if token.empty?
+         items = []
+       else
+         token, items = Cloudlib::Entry.query(query, NUMITEMS, token)
+       end
+       show_items(items, more=(not token.empty?))
+    elsif ans =~ /^quit|q$/
+       exit 0
+    elsif ans =~ /^find *(.+)$/
+       query = $1
+       token, items = Cloudlib::Entry.query(query, NUMITEMS)
+       show_items(items, more=(not token.empty?))
+    elsif ans =~ /^(get|del|mod|bib) *(\d+)$/
+       num = $2.to_i
+       if (num < 0) || (num >= items.length)
+         next
+       else
+         item = items[num]
+         case $1
+         when "get":
+           destpath = ask("Save as: ", String) { |q| q.default = item.friendly_filename; q.readline = true }
+           item.download(destpath)
+           puts "Downloaded #{destpath}"
+         when "mod":
+           item.ask_attributes
+           item.save
+         when "del":
+           item.delete
+         when "bib":
+           puts item.to_bibtex
+         else
+           raise "Unknown command."
+         end
+       end
+    else
+       puts "Unknown command"
+    end
+  end
+end
+
+if ARGV.length >= 1
+  if ARGV[0] == "new-library"
+     print "Create new library `#{ENV['CLOUDLIB_LIBRARY_NAME']}' (y/n)? "
+     ans = STDIN.gets
+     if ans =~ /^[Yy]/
+       begin
+         Cloudlib::Entry.create_library
+       rescue AWS::S3::BucketAlreadyExists
+         STDERR.puts "The library name `#{ENV['CLOUDLIB_LIBRARY_NAME']}' is already taken by another user."
+         STDERR.puts "Please set CLOUDLIB_LIBRARY_NAME to something else and try again."
+         exit 1
+       end
+     end
+     exit 0
+  end
+  if ARGV[0] == "delete-library"
+     print "Delete `#{ENV['CLOUDLIB_LIBRARY_NAME']}' and ALL OF ITS CONTENTS (y/n)? "
+     ans = STDIN.gets
+     if ans =~ /^[Yy]/
+        Cloudlib::Entry.delete_library
+     end
+     exit 0
+  end
+  if ARGV[0] == "backup"
+     print "Delete `#{ENV['CLOUDLIB_LIBRARY_NAME']}' and ALL OF ITS CONTENTS (y/n)? "
+     ans = STDIN.gets
+     if ans =~ /^[Yy]/
+        Cloudlib::Entry.delete_library
+     end
+     exit 0
+  end
+  if ARGV[0] == "add"
+    ARGV[1..(ARGV.length - 1)].each do |target|
+      unless File.exists?(target)
+        puts "File not found: #{target}"
+        exit 1
+      end
+      item = Cloudlib::Entry.from_file(target)
+      puts "Please enter metadata for `#{target}':"
+      item.ask_attributes
+      item.save
+      puts "Uploaded #{target}"
+    end
+    exit 0
+  end
+  if ARGV[0] == "dump"
+    path = ARGV[1] || "."
+    new_entries = 0
+    dummy, entries = Cloudlib::Entry.query("", nil)
+    total_size = entries.inject(0) {|accum, e| accum + e.attributes['size'][0].to_i}
+    printf("Total size is %.2f megabytes.  Make a local copy (y/n)? ", (total_size / (1024.0 * 1024.0)))
+    ans = STDIN.gets
+    if ans =~ /^[Yy]/
+      open("#{path}/#{ENV['CLOUDLIB_LIBRARY_NAME']}.db", 'w') do |file|
+        STDERR.puts "Backing up metadata..."
+        file.write(YAML.dump(entries))
+      end
+      STDERR.puts "Backing up files:"
+      entries.each do |entry|
+        if not File.exists?("#{path}/#{entry.name}")
+          entry.download("#{path}/#{entry.name}")
+          new_entries += 1
+          STDERR.puts entry.to_s
+        end
+      end
+      STDERR.puts "Backed up metadata and #{new_entries} new files."
+    end
+    exit 0
+  end
+  if ARGV[0] == "restore"
+    path = ARGV[1] || "."
+    entries = open("#{path}/#{ENV['CLOUDLIB_LIBRARY_NAME']}.db", 'r') { |file| YAML.load(file) }
+    entries.each do |entry|
+      filename = "#{path}/#{entry.name}"
+      Cloudlib::Entry.from_file(filename)
+      entry.save
+      STDERR.puts entry.to_s
+    end
+    STDERR.puts "Restored #{entries.length} entries."
+    exit 0
+  end
+  STDERR.puts "Unknown command #{ARGV[0]}."
+  puts opts.help
+  exit 1
+else
+  begin
+    menu([])
+  rescue AwsSdb::NoSuchDomainError
+    STDERR.puts "The library `#{ENV['CLOUDLIB_LIBRARY_NAME']}' does not exist."
+    STDERR.puts "Use `#{PROGNAME} new-library' to create it."
+    exit 1
+  end
+end
+

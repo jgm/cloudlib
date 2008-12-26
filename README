@@ -1,0 +1,80 @@
+cloudlib is a system for maintaining a database of electronic papers
+and books using Amazon's web services (for background, see
+http://aws.amazon.com/).  Think of it as an indefinitely extensible
+personal library, accessible from anywhere in the world.
+
+The papers and books themselves are stored in a S3 bucket. The
+metadata are stored in a SimpleDB database, so they can be searched easily.
+The `cloudlib` ruby library integrates these two components and insulates
+the user from the S3- and SimpleDB-specific details.
+
+Note that S3 and SimpleDB are pay services. You will pay Amazon
+proportionally to your usage.  As of this writing (December 2008),
+SimpleDB is free for the kind of usage this library normally requires.
+For S3, the fee in North America is $0.15/GB/month for storage.
+(See http://aws.amazon.com/s3/#pricing for up-to-date figures, including
+fees for data transfer.) At these rates, it will cost less than a tenth
+of a cent to store an average journal article for a year, and less than
+a penny to store a good-sized book.
+
+In addition to a ruby library, two programs are provided:
+
+- `cloudlib` offers a command-line interface for interacting with a library. 
+
+- `cloudlib-web` starts a web-server which can either be used locally
+  (so that the library can be controlled through a browser) or made available
+  on the open internet.  HTTP authentication is used to password-protect
+  the web application.
+
+Both programs assume that the following environment variables have been set.
+(If they are not, they will prompt for these values.)
+
+- `CLOUDLIB_LIBRARY_NAME` - a name, of your choosing, that will identify the
+  library.  It will be used both for the S3 bucket and the SimpleDB domain.
+  S3 bucket names must be unique, so pick a name like
+  'your-name-library', not something generic like 'my-library'.
+
+- `AWS_ACCESS_KEY_ID` - the access key id you are provided when you sign up
+  for Amazon web services.
+
+- `AWS_SECRET_ACCESS_KEY` - the secret key you are provided  when you sign
+  up for Amazon web services.
+
+`cloudlib-web` also assumes that the following environment variables have
+been set:
+
+- `CLOUDLIB_WEB_USERNAME` - a username of your choice, to be used to gain
+  access to the web interface.
+
+- `CLOUDLIB_WEB_PASSWORD` - a password of your choice, to be used to gain
+  access to the web interface.
+
+These environment variables can be set as follows:
+
+    export AWS_ACCESS_KEY_ID=xxxx-my-key-id-xxx
+    export AWS_SECRET_ACCESS_KEY=xxx-my-key-xxx
+    export CLOUDLIB_LIBRARY_NAME=xxx-my-library-name-xxx
+    export CLOUDLIB_WEB_USERNAME=xxx-username-xxx
+    export CLOUDLIB_WEB_PASSWORD=xxx-password-xxx
+
+You may want to put these commands in a file, `cloudlib-setup`,
+so that you can set all the variables at once:
+
+    source cloudlib-setup
+
+After setting the environment variables, but before doing anything else,
+you will need to create your library:
+
+    cloudlib new-library
+
+If that succeeds, you can use either `cloudlib` or `cloudlib-web` to access
+the library.  By default, `cloudlib-web` will start a webserver on port 4567.
+(This can be changed using the `-p PORT` option.)  To use the web interface
+after you've started the server, just point your browser at <http://localhost:4567>.
+
+For instructions on the use of `cloudlib`, try `cloudlib --help`.
+`cloudlib` by itself will start an interactive session.  To add a new file,
+use `cloudlib add` followed by the path of the file you want to add.
+The commands `dump` and `restore` are also provided to allow creation of
+a local backup of the database.
+

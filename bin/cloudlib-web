@@ -1,0 +1,207 @@
+#!/usr/bin/env ruby
+require 'rubygems'
+require 'digest/sha1'
+require 'sinatra'  # sinatra gem
+require 'tempfile'
+require 'cloudlib'
+require 'highline/import'       # highline gem
+
+# Number of items to display per page after query
+NUMITEMS = 10
+
+# check that required environment variables are set
+envvars = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "CLOUDLIB_LIBRARY_NAME", "CLOUDLIB_WEB_USERNAME", "CLOUDLIB_WEB_PASSWORD"]
+envvars.each do |var|
+  unless ENV[var]
+    ENV[var] = ask("#{var}: ", String) { |q| q.echo = if var == "AWS_SECRET_ACCESS_KEY" then "*" else true end }
+  end
+end
+Cloudlib::Entry.connect(ENV['CLOUDLIB_LIBRARY_NAME'], ENV['AWS_ACCESS_KEY_ID'], ENV['AWS_SECRET_ACCESS_KEY'])
+
+use Rack::Auth::Basic do |username, password|
+  username == ENV['CLOUDLIB_WEB_USERNAME'] &&
+  password == ENV['CLOUDLIB_WEB_PASSWORD']
+end
+
+get '/stylesheet.css' do
+  content_type 'text/css', :charset => 'utf-8'
+  sass :stylesheet
+end
+
+get '/' do
+  @token, @entries = "", []
+  @query = ""
+  haml :index
+end
+
+post '/' do
+  if params[:query]
+     @query = params[:query]
+     @token, @entries = Cloudlib::Entry.query(@query, NUMITEMS, params[:token])
+  else
+     @token, @entries = "", []
+     @query = ""
+  end
+  haml :index
+end
+
+get '/upload' do
+  haml :upload
+end
+
+post '/upload' do
+  tempfile = params[:fileToUpload][:tempfile]
+  tempfilepath = tempfile.path
+  tempfile.close
+  entry = Cloudlib::Entry.from_file(tempfilepath, params[:fileToUpload][:filename])
+  set_attributes_from_form(entry)
+  entry.save
+  redirect "/"
+end
+
+get '/*/bibtex' do
+  @entry = Cloudlib::Entry.find_by_name(params[:splat][0])
+  content_type 'text/plain', :charset => 'utf-8'
+  @entry.to_bibtex
+end
+
+get '/*' do
+  name = "#{params[:splat][0]}"
+  @entry = Cloudlib::Entry.find_by_name(name)
+  haml :modify
+end
+
+post '/*' do
+  entry = Cloudlib::Entry.find_by_name(params[:splat][0])
+  set_attributes_from_form(entry)
+  entry.save
+  redirect '/'
+end
+
+delete '/*' do
+  entry = Cloudlib::Entry.find_by_name(params[:splat][0])
+  entry.delete
+  redirect '/'
+end
+
+def field_for_type?(field, type)
+  Cloudlib::Entry.fields(type).member?(field)
+end
+
+def show_fields(type)
+  cmds = Cloudlib::Entry.fields.map do |field|
+    "document.getElementById('#{field.to_s}').setAttribute('style', 'display: #{if field_for_type?(field, type) then 'all' else 'none' end}'); "
+  end
+  return cmds.join
+end
+
+def set_attributes_from_form(entry)
+  entry.attributes['entry_type'] = params['entry_type']
+  Cloudlib::Entry.fields.each do |field|
+    if field_for_type?(field, params['entry_type']) && params[field]
+       entry.set_attribute(field.to_s, params[field])
+    else
+       entry.set_attribute(field.to_s, '')
+    end
+  end
+end
+
+use_in_file_templates!
+
+__END__
+
+@@ layout
+!!! Strict
+%head
+  %link{:href => '/stylesheet.css', :type => 'text/css', :media => 'all', :rel => 'stylesheet'}
+  %title
+    = ENV['CLOUDLIB_LIBRARY_NAME']
+%body
+  %h1
+    %a{:href => '/'}
+      = ENV['CLOUDLIB_LIBRARY_NAME']
+  %div#content
+    = yield
+  %div#footer
+    powered by
+    %a{:href => ''}cloudlib
+
+@@ index
+%div.queryform
+  %form{:method => 'POST', :action => '/'}
+    %input{:type => 'text', :name => 'query', :value => @query, :size => '30'}
+    %input{:type => 'submit', :value => 'Search'}
+  %ol
+    - @entries.each do |i|
+      %li
+        = i.to_s
+        %a{:href => "/#{i.name}/bibtex"}bibtex
+        %span.separator &bull;
+        %a{:href => "/#{i.name}"}modify
+        %span.separator &bull;
+        %a{:href => i.url}download
+  - if not @token.empty?
+    %form{:method => 'POST', :action => '/'}
+      %input{:type => 'text', :name => 'query', :value => @query, :style => 'display: none'}
+      %input{:type => 'text', :name => 'token', :value => @token, :style => 'display: none'}
+      %input{:type => 'submit', :value => 'More matches...'}
+  %a{:href => "/upload"}upload
+
+@@ upload
+%form{:method => 'POST', :action => '/upload', :enctype => 'multipart/form-data'}
+  %label Select file to upload:
+  %br
+  %input{:type => 'file', :name => 'fileToUpload', :size => 40}
+  = haml :metadata, :layout => false
+  %input{:type => 'submit', :value => 'Add file to library'}
+
+@@ metadata
+%table
+  %tr
+    %td
+      %label Type:
+    %td
+      %select{:name => 'entry_type'}
+        - ['','article','book','incollection','chapter','unpublished'].each do |type|
+          %option{:onClick => show_fields(type), :selected => (@entry && @entry.show_attribute('entry_type') == type) || type.empty?}
+            = type
+  - Cloudlib::Entry.fields.each do |field|
+    %tr{:style => (@entry && field_for_type?(field, @entry.show_attribute('entry_type'))) || 'display: none;', :id => field.to_s}
+      %td
+        %label
+          = field.to_s.capitalize + ':'
+      %td
+        %input{:type => 'text', :name => field.to_s, :value => (@entry && @entry.show_attribute(field.to_s)) || '', :size => 50}
+
+@@ modify
+%div.detail
+%form{:method => 'POST', :action => "/#{@entry.name}"}
+  = haml :metadata, :layout => false
+  %p
+    %input{:type => 'submit', :value => 'Update metadata'}
+%form{:method => 'POST', :action => "/#{@entry.name}"}
+  %p
+    %input{:type => 'text', :name => '_method', :value => 'delete', :style => 'display: none;'}
+    %input{:type => 'submit', :value => 'Delete this entry'}
+
+@@ stylesheet
+body
+  font-size: small
+  padding: 10px
+h1
+  border-top: 1px solid gray
+  border-bottom: 1px solid gray
+h1 a
+  color: #7a7a7a
+  text-decoration: none
+  &:visited
+    color: #7a7a7a
+li
+  padding-bottom: 0.3em
+#footer
+  border-top: 1px solid gray
+  margin-top: 1em
+  padding-top: 1em
+  font-size: x-small
+  text-align: center
+
