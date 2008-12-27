@@ -10,7 +10,7 @@ require 'highline/import'       # highline gem
 envvars = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "CLOUDLIB_LIBRARY_NAME", "CLOUDLIB_WEB_USERNAME", "CLOUDLIB_WEB_PASSWORD"]
 envvars.each do |var|
   unless ENV[var]
-    ENV[var] = ask("#{var}: ", String) { |q| q.echo = if var == "AWS_SECRET_ACCESS_KEY" then "*" else true end }
+    ENV[var] = ask("#{var}: ", String) { |q| q.echo = if var == "AWS_SECRET_ACCESS_KEY" || var == "CLOUDLIB_WEB_PASSWORD" then "*" else true end }
   end
 end
 Cloudlib::Entry.connect(ENV['CLOUDLIB_LIBRARY_NAME'], ENV['AWS_ACCESS_KEY_ID'], ENV['AWS_SECRET_ACCESS_KEY'])
