@@ -6,9 +6,6 @@ require 'tempfile'
 require 'cloudlib'
 require 'highline/import'       # highline gem
 
-# Number of items to display per page after query
-NUMITEMS = 10
-
 # check that required environment variables are set
 envvars = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "CLOUDLIB_LIBRARY_NAME", "CLOUDLIB_WEB_USERNAME", "CLOUDLIB_WEB_PASSWORD"]
 envvars.each do |var|
@@ -37,7 +34,7 @@ end
 post '/' do
   if params[:query]
      @query = params[:query]
-     @token, @entries = Cloudlib::Entry.query(@query, NUMITEMS, params[:token])
+     @token, @entries = Cloudlib::Entry.query(@query, 10, params[:token])
   else
      @token, @entries = "", []
      @query = ""
