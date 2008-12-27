@@ -121,7 +121,7 @@ __END__
     = yield
   %div#footer
     powered by
-    %a{:href => ''}cloudlib
+    %a{:href => 'http://github.com/jgm/cloudlib/tree/master'}cloudlib
 
 @@ index
 %div.queryform
