@@ -8,13 +8,11 @@ require 'optparse'
 require 'highline/import'       # highline gem
 
 PROGNAME = "cloudlib"
-CLOUDLIB_VERSION = "0.1"
 NUMITEMS = 10
 
 options = {}
 opts = OptionParser.new do |opts|
   opts.program_name = "#{PROGNAME} (c) 2008 John MacFarlane"
-  opts.version = "version #{CLOUDLIB_VERSION}"
   opts.banner = "cloudlib -- a library of books and articles in the AWS `cloud'\n" +
     "Usage: #{PROGNAME}                - start interactive menu\n" +
     "       #{PROGNAME} add FILE       - upload FILE to library, prompting for metadata\n" +
@@ -23,10 +21,6 @@ opts = OptionParser.new do |opts|
     "       #{PROGNAME} dump [PATH]    - create a local backup of library in PATH\n" +
     "       #{PROGNAME} restore [PATH] - restore library from local backup in PATH\n" +
     "Options:"
-end
-opts.on("-v", "--version", "Show version") do
-  puts opts.ver
-  exit 0
 end
 opts.on("-h", "--help", "Show usage message") do
   puts opts.help
