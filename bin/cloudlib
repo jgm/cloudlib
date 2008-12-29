@@ -3,7 +3,7 @@
 require 'yaml'
 require 'rubygems'
 require 'digest/sha1'
-require 'lib/cloudlib'          # cloudlib gem
+require 'cloudlib'              # cloudlib gem
 require 'optparse'
 require 'highline/import'       # highline gem
 
