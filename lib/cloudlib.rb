@@ -143,7 +143,7 @@ class Entry
   # if their titles contain both word1 and word2.
   def self.query(query_string, numitems=10, token=nil)
     query_parts = query_string.downcase.scan(/((ti(?:tle)?|au(?:thors?)?|jo(?:urnal)?|bo(?:ooktitle)?|pu(?:blisher)?|ad(?:ddress)?|ed(?:itors?)?|ye(?:ar)?)\s*([<=>])\s*('[^']*'|"[^"]*"|\S*)|\S+)\s*/)
-    query = query_parts.reject {|part| part[0] == '*'}.map do |part|
+    query = query_parts.reject {|part| part && part[0] == '*'}.map do |part|
       whole, key, comparison, val = part
       if val then val = val.gsub(/^['"](.*)['"]$/, "\\1") end
       if not val then val = whole end
