@@ -3,6 +3,7 @@ require 'rubygems'
 require 'digest/sha1'
 require 'sinatra'  # sinatra gem
 require 'tempfile'
+require 'fileutils'
 require 'cloudlib'
 require 'highline/import'       # highline gem
 
@@ -51,6 +52,7 @@ post '/upload' do
   tempfilepath = tempfile.path
   tempfile.close
   entry = Cloudlib::Entry.from_file(tempfilepath, params[:fileToUpload][:filename])
+  FileUtils.rm tempfilepath
   set_attributes_from_form(entry)
   entry.save
   redirect "/"
