@@ -20,7 +20,7 @@ opts = OptionParser.new do |opts|
     "       #{PROGNAME} delete-library - delete library and all its entries\n" +
     "       #{PROGNAME} dump [PATH]    - create a local backup of library in PATH\n" +
     "       #{PROGNAME} restore [PATH] - restore library from local backup in PATH\n" +
-    "       #{PROGNAME} stats          - print statistics for library.\n" +
+    "       #{PROGNAME} list           - list entries in library and print statistics\n" +
     "Options:"
 end
 opts.on("-h", "--help", "Show usage message") do
@@ -175,14 +175,17 @@ if ARGV.length >= 1
     end
     exit 0
   end
-  if ARGV[0] == "stats"
+  if ARGV[0] == "list"
+    STDERR.puts "Generating list of entries (this may take a while)..."
     dummy, entries = Cloudlib::Entry.query("", nil)
-    total_size = entries.inject(0) {|accum, e| accum + e.attributes['size'][0].to_i}
-    num_entries = entries.length
-    size_in_mb = total_size / (1024.0 * 1024.0)
+    total_size = entries.inject(0) do |accum, e|
+      size = e.attributes['size'][0].to_i / (1024.0 * 1024.0)
+      printf "%7.2f MB  %s\n", size, e.to_s 
+      accum + size
+    end
     rate_gb_month = 0.15
-    printf("The library contains %d entries, with a total size of %.2f megabytes.\n", num_entries, size_in_mb)
-    printf("This will cost $%.2f to store for a year at $%.2f/month.\n", (size_in_mb / 1000) * rate_gb_month * 12, rate_gb_month)
+    printf("\n%7.2f MB  TOTAL (%d entries).  ", total_size, entries.length)
+    printf("This will cost $%.2f to store for a year at $%.2f/month.\n", (total_size / 1024.0) * rate_gb_month * 12, rate_gb_month)
     exit 0
   end
   if ARGV[0] == "dump"
