@@ -189,27 +189,24 @@ if ARGV.length >= 1
     exit 0
   end
   if ARGV[0] == "dump"
-    path = ARGV[1] || "."
+    path = ARGV[1] || ask("Dump to which directory? ", String) { |q| q.default = "."; q.echo = true }
     new_entries = 0
     dummy, entries = Cloudlib::Entry.query("", nil)
     total_size = entries.inject(0) {|accum, e| accum + e.attributes['size'][0].to_i}
-    printf("Total size is %.2f megabytes.  Make a local copy (y/n)? ", (total_size / (1024.0 * 1024.0)))
-    ans = STDIN.gets
-    if ans =~ /^[Yy]/
-      open("#{path}/#{ENV['CLOUDLIB_LIBRARY_NAME']}.db", 'w') do |file|
-        STDERR.puts "Backing up metadata..."
-        file.write(YAML.dump(entries))
-      end
-      STDERR.puts "Backing up files:"
-      entries.each do |entry|
-        if not File.exists?("#{path}/#{entry.name}")
-          entry.download("#{path}/#{entry.name}")
-          new_entries += 1
-          STDERR.puts entry.to_s
-        end
-      end
-      STDERR.puts "Backed up metadata and #{new_entries} new files."
+    printf("Total size is %.2f megabytes.\n", (total_size / (1024.0 * 1024.0)))
+    open("#{path}/#{ENV['CLOUDLIB_LIBRARY_NAME']}.db", 'w') do |file|
+      STDERR.puts "Backing up metadata..."
+      file.write(YAML.dump(entries))
     end
+    STDERR.puts "Backing up files:"
+    entries.each do |entry|
+      if not File.exists?("#{path}/#{entry.name}")
+        entry.download("#{path}/#{entry.name}")
+        new_entries += 1
+        STDERR.puts entry.to_s
+      end
+    end
+    STDERR.puts "Backed up metadata and #{new_entries} new files."
     exit 0
   end
   if ARGV[0] == "restore"
