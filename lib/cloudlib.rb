@@ -168,7 +168,8 @@ class Entry
                  else
                    'all'
                  end
-      vals = val.split
+      # split hyphenated names into components, since a query might just have one
+      vals = val.split(/[-[:space:]]+/)
       vals.map do |v|
         if key_full == 'year'    # there is no year_words field
            "['year' #{comparison} '#{v}']"
