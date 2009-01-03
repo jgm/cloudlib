@@ -173,7 +173,8 @@ class Entry
         if key_full == 'year'    # there is no year_words field
            "['year' #{comparison} '#{v}']"
         else
-           "['#{key_full}_words' = '#{v}']"
+           v_escaped = v.gsub(/\\/,"\\\\\\\\").gsub(/'/,"\\\\'")
+           "['#{key_full}_words' = '#{v_escaped}']"
         end
       end.join(" intersection ")
     end.join(" intersection ")
