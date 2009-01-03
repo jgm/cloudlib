@@ -315,7 +315,7 @@ class Entry
       self.attributes[attribute] = newval
       unless ['url', 'doi', 'keywords'].member?(attribute)
         self.attributes[attribute + "_lowercase"] = newval.map {|a| a.downcase}
-        self.attributes[attribute + "_words"] = self.attributes[attribute + "_lowercase"].map {|a| a.split(/[[:space:][:punct:]] */)}.flatten
+        self.attributes[attribute + "_words"] = self.attributes[attribute + "_lowercase"].map {|a| a.split(/[[:punct:]]*[[:space:]]+|-+/)}.flatten.reject {|a| a.empty?}
       end
       # recalculate all_words
       tit_auth_words = ['title', 'authors', 'editors', 'booktitle'].map {|att| self.attributes[att + "_words"] || []}.flatten
