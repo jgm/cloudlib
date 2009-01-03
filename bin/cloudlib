@@ -185,7 +185,7 @@ if ARGV.length >= 1
     end
     rate_gb_month = 0.15
     printf("\n%7.2f MB  TOTAL (%d entries).  ", total_size, entries.length)
-    printf("This will cost $%.2f to store for a year at $%.2f/month.\n", (total_size / 1024.0) * rate_gb_month * 12, rate_gb_month)
+    printf("This will cost $%.2f to store for a year at $%.2f/GB/month.\n", (total_size / 1024.0) * rate_gb_month * 12, rate_gb_month)
     exit 0
   end
   if ARGV[0] == "dump"
