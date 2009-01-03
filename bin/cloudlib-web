@@ -44,6 +44,7 @@ post '/' do
 end
 
 get '/upload' do
+  @error = params[:error]
   haml :upload
 end
 
@@ -51,11 +52,16 @@ post '/upload' do
   tempfile = params[:fileToUpload][:tempfile]
   tempfilepath = tempfile.path
   tempfile.close
-  entry = Cloudlib::Entry.from_file(tempfilepath, params[:fileToUpload][:filename])
-  FileUtils.rm tempfilepath
-  set_attributes_from_form(entry)
-  entry.save
-  redirect "/"
+  origname = params[:fileToUpload][:filename] || ""
+  if origname == ""
+    redirect "/upload?error=Please+select+a+file+to+upload."
+  else
+    entry = Cloudlib::Entry.from_file(tempfilepath, params[:fileToUpload][:filename])
+    FileUtils.rm tempfilepath
+    set_attributes_from_form(entry)
+    entry.save
+    redirect "/"
+  end
 end
 
 get '/*/bibtex' do
@@ -148,6 +154,8 @@ __END__
 
 @@ upload
 %form{:method => 'POST', :action => '/upload', :enctype => 'multipart/form-data'}
+  %p.error
+    = @error
   %label Select file to upload:
   %br
   %input{:type => 'file', :name => 'fileToUpload', :size => 40}
@@ -203,4 +211,6 @@ li
   padding-top: 1em
   font-size: x-small
   text-align: center
-
+p.error
+  color: red
+  font-weight: bold
