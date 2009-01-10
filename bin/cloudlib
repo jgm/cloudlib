@@ -80,6 +80,20 @@ def show_items(items, more=false)
   end
 end
 
+def html_version(entries)
+  "<html>\n" +
+  "<meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n" +
+  "<body>\n" +
+  "<ol>\n" +
+  entries.map do |entry|
+    "<li><a href=\"" + CGI.escape(entry.name) + "\">" +
+    CGI.escapeHTML(entry.to_s) + "</a></li>"
+  end.join("\n") +
+  "</ol>\n" +
+  "</body>\n" +
+  "</html>"
+end
+
 def menu(items)
   token = query = ""
   while true
@@ -197,6 +211,10 @@ if ARGV.length >= 1
     open("#{path}/#{ENV['CLOUDLIB_LIBRARY_NAME']}.db", 'w') do |file|
       STDERR.puts "Backing up metadata..."
       file.write(YAML.dump(entries))
+    end
+    open("#{path}/index.html", 'w') do |file|
+      STDERR.puts "Writing HTML index..."
+      file.write(html_version(entries))
     end
     STDERR.puts "Backing up files:"
     entries.each do |entry|
