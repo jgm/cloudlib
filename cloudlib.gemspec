@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name     = "cloudlib"
-  s.version  = "0.3.6"
+  s.version  = "0.3.7"
   s.date     = "2009-04-14"
   s.summary  = "Tools for maintaining a library of books and articles in Amazon S3 and SimpleDB"
   s.email    = "jgm@berkeley.edu"

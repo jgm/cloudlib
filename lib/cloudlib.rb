@@ -366,8 +366,8 @@ class Entry
     Entry.fields(entry_type)
   end
 
-  def url
-    AWS::S3::S3Object.find(self.name, @@bucket).url(:expires_in => 60 * 10)  # expires in 10 min
+  def url(minutes = 10)
+    AWS::S3::S3Object.url_for(self.name, @@bucket, :expires_in => 60 * minutes)
   end
 
   private

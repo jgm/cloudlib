@@ -99,7 +99,7 @@ def menu(items)
   while true
     commands = ["find KEYWORDS", "quit"]
     if items.length > 0
-      then commands = ["bib NUM", "get NUM", "del NUM", "mod NUM"] + commands
+      then commands = ["bib NUM", "get NUM", "del NUM", "mod NUM", "url NUM"] + commands
     end
     choices = commands.join(' | ')
     ans = ask("#{choices} ? ", String) { |q| q.readline = true; q.case = :downcase }
@@ -116,7 +116,7 @@ def menu(items)
        query = $1
        token, items = Cloudlib::Entry.query(query, NUMITEMS)
        show_items(items, more=(not token.empty?))
-    elsif ans =~ /^(get|del|mod|bib) *(\d+)$/
+    elsif ans =~ /^(get|del|mod|bib|url) *(\d+)$/
        num = $2.to_i
        if (num < 0) || (num >= items.length)
          next
@@ -134,6 +134,9 @@ def menu(items)
            item.delete
          when "bib":
            puts item.to_bibtex
+         when "url":
+           validminutes = ask("How long (in minutes) should the link be valid? ", Integer) { |q| q.default = 10; q.readline = true; }
+           puts item.url(validminutes)
          else
            raise "Unknown command."
          end
