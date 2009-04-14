@@ -191,7 +191,11 @@ if ARGV.length >= 1
   end
   if ARGV[0] == "list"
     STDERR.puts "Generating list of entries (this may take a while)..."
-    dummy, entries = Cloudlib::Entry.query("", nil)
+    token, entries = Cloudlib::Entry.query("",100)
+    while not (token.empty?)
+      token, next_entries = Cloudlib::Entry.query("", 100, token)
+      entries += next_entries
+    end
     total_size = entries.inject(0) do |accum, e|
       size = e.attributes['size'][0].to_i / (1024.0 * 1024.0)
       printf "%7.2f MB  %s\n", size, e.to_s 
@@ -205,7 +209,12 @@ if ARGV.length >= 1
   if ARGV[0] == "dump"
     path = ARGV[1] || ask("Dump to which directory? ", String) { |q| q.default = "."; q.echo = true }
     new_entries = 0
-    dummy, entries = Cloudlib::Entry.query("", nil)
+    token, entries = Cloudlib::Entry.query("",100)
+    while not (token.empty?)
+      token, next_entries = Cloudlib::Entry.query("", 100, token)
+      puts ("got entries token = " + token)
+      entries += next_entries
+    end
     total_size = entries.inject(0) {|accum, e| accum + e.attributes['size'][0].to_i}
     printf("Total size is %.2f megabytes.\n", (total_size / (1024.0 * 1024.0)))
     open("#{path}/#{ENV['CLOUDLIB_LIBRARY_NAME']}.db", 'w') do |file|
