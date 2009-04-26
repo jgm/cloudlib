@@ -215,7 +215,6 @@ if ARGV.length >= 1
     token, entries = Cloudlib::Entry.query("",100)
     while not (token.empty?)
       token, next_entries = Cloudlib::Entry.query("", 100, token)
-      puts ("got entries token = " + token)
       entries += next_entries
     end
     total_size = entries.inject(0) {|accum, e| accum + e.attributes['size'][0].to_i}
