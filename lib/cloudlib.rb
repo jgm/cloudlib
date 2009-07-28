@@ -237,12 +237,12 @@ class Entry
   def to_bibtex
     pairs = self.fields.map do |field|
       if self.attributes[field.to_s]
-         sprintf("  %-15s: {%s}", field.to_s, self.show_attribute(field.to_s))
+         sprintf("  %-15s= {%s}", field.to_s, self.show_attribute(field.to_s))
       else
          nil
       end
     end
-    pairs += [sprintf("  %-15s: {%s}", "file", self.name)]
+    pairs += [sprintf("  %-15s= {%s}", "file", self.name)]
     authornames = self.attributes['authors'].map {|a| last_name(a)}.join('.')
     year = self.attributes['year']
     entry_type = self.show_attribute('entry_type') || 'unknown'
