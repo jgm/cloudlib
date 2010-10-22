@@ -1,0 +1,4 @@
+Update instructions:
+
+gem build cloudlib.gemspec
+gem push cloudlib-x.y.z.gem
