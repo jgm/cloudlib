@@ -111,7 +111,7 @@ def set_attributes_from_form(entry)
   end
 end
 
-use_in_file_templates!
+enable :inline_templates
 
 __END__
 
@@ -170,7 +170,7 @@ __END__
     %td
       %select{:name => 'entry_type'}
         - ['','article','book','incollection','chapter','unpublished'].each do |type|
-          %option{:onChange => show_fields(type), :selected => (@entry && @entry.show_attribute('entry_type') == type) || type.empty?}
+          %option{:onClick => show_fields(type), :selected => (@entry && @entry.show_attribute('entry_type') == type) || type.empty?}
             = type
   - Cloudlib::Entry.fields.each do |field|
     %tr{:style => (@entry && field_for_type?(field, @entry.show_attribute('entry_type'))) || 'display: none;', :id => field.to_s}
