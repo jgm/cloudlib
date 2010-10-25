@@ -89,3 +89,9 @@ To install cloudlib:
     gem sources -a http://gems.github.com        # you only have to do this once
     sudo gem install jgm-cloudlib
 
+Known bugs:
+
+* The web interface doesn't work in Chrome (and probably other browsers).
+  It does work in Firefox.  The culprit: onClick attributes on option
+  tags, which aren't technically allowed.
+
