@@ -228,12 +228,18 @@ if ARGV.length >= 1
       file.write(html_version(entries))
     end
     STDERR.puts "Backing up files:"
+    bibtex = []
     entries.each do |entry|
       if not File.exists?("#{path}/#{entry.name}")
         entry.download("#{path}/#{entry.name}")
         new_entries += 1
         STDERR.puts entry.to_s
       end
+      bibtex << entry.to_bibtex
+    end
+    open("#{path}/references.bib", 'w') do |file|
+      STDERR.puts "Writing bibtex bibliography..."
+      file.write(bibtex.join("\n\n"))
     end
     STDERR.puts "Backed up metadata and #{new_entries} new files."
     exit 0
